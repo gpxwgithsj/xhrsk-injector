@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>XHRSK AI V1</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', monospace; user-select: none; }
+        canvas#hackCanvas { position: fixed; top: 0; left: 0; z-index: 1; opacity: 0.5; }
+
+        /* Capas de Pantalla */
+        .overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 2000; display: flex; 
+            flex-direction: column; align-items: center; justify-content: center;
+            gap: 20px;
+        }
+
+        /* Capa de Contraseña */
+        #password-layer { display: flex; z-index: 2001; }
+        
+        h2 { text-align: center; letter-spacing: 2px; text-shadow: 0 0 10px #0f0; color: #0f0; margin-bottom: 20px; font-size: 1.2rem; }
+        
+        #password-input {
+            padding: 12px; font-size: 16px; border: 2px solid #0f0;
+            background: #000; color: #0f0; text-align: center;
+            border-radius: 8px; width: 80%; max-width: 250px;
+        }
+
+        #btn-submit {
+            padding: 12px 25px; background: #0f0; color: #000;
+            font-weight: bold; font-size: 16px; border: none;
+            border-radius: 8px; cursor: pointer;
+        }
+
+        /* Contenedor Principal FIJO en el centro */
+        #main-container {
+            position: fixed;
+            top: 50%; left: 50%; 
+            transform: translate(-50%, -50%);
+            display: flex; align-items: center;
+            gap: 30px; /* Espacio entre panel y silueta */
+            z-index: 1000; display: none;
+        }
+
+        /* Panel Principal */
+        #panel-xhrsk {
+            width: 280px; 
+            background: rgba(0, 10, 0, 0.9); 
+            border: 2px solid #0f0; color: #0f0; padding: 10px; 
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+            box-sizing: border-box;
+            max-height: 80vh; overflow-y: auto;
+        }
+        
+        #panel-xhrsk h2 { font-size: 1rem; margin: 0 0 5px 0; color: #fff; text-shadow: 0 0 5px #0f0;}
+
+        /* Contenedor de la Silueta */
+        #silhouette-container {
+            position: relative;
+            width: 70px; height: 300px;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        #character-silhouette {
+            height: 100%; width: auto;
+            filter: drop-shadow(0 0 8px #0f0);
+        }
+
+        /* Puntero ajustable (Línea completa) */
+        #aim-pointer {
+            position: absolute;
+            width: 150%; 
+            height: 2px;
+            background: rgba(255, 0, 0, 0.8);
+            box-shadow: 0 0 8px red;
+            top: 50%; /* Posición inicial */
+            transition: top 0.02s linear;
+            z-index: 1001;
+            pointer-events: none;
+        }
+        #aim-pointer::after {
+            content: '▲'; position: absolute; right: -15px; top: -8px;
+            color: red; font-size: 10px;
+        }
+
+        .option { margin-bottom: 5px; padding-bottom: 3px; border-bottom: 1px solid rgba(0,255,0,0.1); font-size: 0.75rem; }
+        .label-group { display: flex; align-items: center; justify-content: space-between; }
+        
+        /* Contenedor de Protección */
+        .protection-box {
+            border: 1px solid #0f0; border-radius: 8px;
+            padding: 5px; margin-top: 5px; background: rgba(0,30,0,0.3);
+        }
+        .protection-box h3 { font-size: 0.8rem; color: #fff; margin: 0; text-align: center; }
+
+        .btn-launch {
+            color: #fff; border: none; padding: 8px;
+            width: 100%; border-radius: 8px; font-weight: bold; margin-top: 5px;
+            cursor: pointer; font-size: 0.8rem;
+        }
+        .bg-normal { background: #e67e22; }
+        .bg-max { background: #ff4500; }
+
+        input[type=checkbox] { width: 14px; height: 14px; accent-color: #0f0; }
+        input[type=range] { width: 100%; accent-color: #0f0; margin-top: 0; }
+    </style>
+</head>
+<body>
+
+    <div id="password-layer" class="overlay">
+        <h2>VALIDACIÓN XHRSK</h2>
+        <input type="password" id="password-input" placeholder="INGRESE CONTRASEÑA" maxlength="20">
+        <button id="btn-submit">ENTRAR</button>
+    </div>
+
+    <canvas id="hackCanvas"></canvas>
+
+    <div id="main-container">
+        
+        <div id="panel-xhrsk">
+            <h2>XHRSK AI V1</h2>
+            
+            <div class="option">
+                <div class="label-group">
+                    <span><i class="fas fa-brain"></i> ASIST AI</span>
+                    <input type="checkbox" id="check-asistai">
+                </div>
+            </div>
+
+            <div class="option">
+                <div class="label-group">
+                    <span><i class="fas fa-crosshairs"></i> PRECISIÓN</span>
+                    <input type="checkbox" id="check-precision">
+                </div>
+            </div>
+
+            <div class="option">
+                <div class="label-group">
+                    <span><i class="fas fa-magnet"></i> AIMLOCK</span>
+                    <input type="checkbox" id="check-aimlock">
+                </div>
+            </div>
+
+            <div class="option">
+                <div class="label-group">
+                    <span><i class="fas fa-fire-extinguisher"></i> NO RECOIL</span>
+                    <input type="checkbox" id="check-norecoil">
+                </div>
+            </div>
+
+            <div class="option">
+                <div class="label-group">
+                    <span><i class="fas fa-arrows-alt-v"></i> AIMLINE [PIE-CAB]</span>
+                </div>
+                <input type="range" id="range-aim" min="0" max="100" value="50" step="1">
+            </div>
+
+            <div class="option">
+                <div class="label-group">
+                    <span><i class="fas fa-eye"></i> FOV: <span id="fov-val">100</span></span>
+                </div>
+                <input type="range" id="range-fov" min="50" max="100" value="100">
+            </div>
+
+            <div class="protection-box">
+                <h3><i class="fas fa-shield-alt"></i> PROTECCIÓN</h3>
+                <div class="option" style="border:none; margin-bottom:2px; font-size:0.7rem;">
+                    <div class="label-group"><span>Antiban</span><input type="checkbox" id="check-antiban"></div>
+                </div>
+                <div class="option" style="border:none; margin-bottom:0; font-size:0.7rem;">
+                    <div class="label-group"><span>AntiBlack</span><input type="checkbox" id="check-antiblack"></div>
+                </div>
+            </div>
+
+            <button class="btn-launch bg-normal" onclick="lanzarDirecto('com.dts.freefireth')">FF NORMAL</button>
+            <button class="btn-launch bg-max" onclick="lanzarDirecto('com.dts.freefiremax')">FF MAX</button>
+        </div>
+
+        <div id="silhouette-container">
+            <img src="https://raw.githubusercontent.com/gpxwgithsj/xhrsk-injector/main/1000215330-removebg-preview.png" id="character-silhouette" alt="Silueta">
+            <div id="aim-pointer"></div>
+        </div>
+    </div>
+
+    <script>
+        // --- VOZ FLUIDA CORREGIDA ---
+        function hablar(t) {
+            window.speechSynthesis.cancel();
+            const m = new SpeechSynthesisUtterance(t);
+            m.lang = 'es-MX';
+            m.rate = 1.1; // Velocidad para naturalidad
+            m.pitch = 1;  // Tono normal
+            // Asegura que se lea como una frase completa
+            window.speechSynthesis.speak(m);
+        }
+
+        // --- FONDO MATRIX ---
+        const c = document.getElementById('hackCanvas');
+        const x = c.getContext('2d');
+        let cols, ds;
+        function iM() { c.width = window.innerWidth; c.height = window.innerHeight; cols = c.width/16; ds = Array(Math.floor(cols)).fill(1); }
+        function dM() {
+            x.fillStyle = 'rgba(0,0,0,0.05)'; x.fillRect(0,0,c.width,c.height);
+            x.fillStyle = '#0F0'; x.font = '16px monospace';
+            ds.forEach((y, i) => {
+                x.fillText(String.fromCharCode(0x30A0+Math.random()*96), i*16, y*16);
+                if(y*16 > c.height && Math.random() > 0.975) ds[i] = 0;
+                ds[i]++;
+            });
+        }
+        window.onresize = iM; iM(); setInterval(dM, 35);
+
+        // --- LÓGICA DE CONTRASEÑA ---
+        document.getElementById('btn-submit').onclick = () => {
+            const pass = document.getElementById('password-input').value;
+            if(pass === "XHRSKC666") {
+                document.getElementById('password-layer').style.display = 'none';
+                document.getElementById('main-container').style.display = 'flex';
+                hablar("Acceso concedido");
+            } else {
+                hablar("Contraseña incorrecta");
+                document.getElementById('password-input').value = '';
+            }
+        };
+
+        // --- LÓGICA DE FUNCIONES ---
+        
+        // Función para cambiar posición del Aimline
+        // Min (0) = Pies / Max (100) = Cabeza
+        document.getElementById('range-aim').oninput = function() {
+            const val = this.value;
+            const pointer = document.getElementById('aim-pointer');
+            // Cálculo para mapear 0-100 a posición vertical de la silueta
+            const position = 90 - (val * 0.8);
+            pointer.style.top = position + "%";
+        };
+
+        // FOV Slider
+        document.getElementById('range-fov').oninput = function() {
+            document.getElementById('fov-val').innerText = this.value;
+        };
+
+        // Activadores de funciones por Checkbox
+        document.querySelectorAll('input[type="checkbox"]').forEach(check => {
+            check.onchange = function() {
+                // Obtiene el nombre amigable de la función y lo procesa
+                let functionName = this.id.replace('check-','').replace('-', ' ').toUpperCase();
+                
+                // Mapeo amigable para la voz
+                const maps = {
+                    "ASISTAI": "Asistente Inteligente",
+                    "PRECISION": "Precisión",
+                    "AIMLOCK": "Apuntado Automático",
+                    "NORECOIL": "Sin Retroceso",
+                    "ANTIBAN": "Anti Ban",
+                    "ANTIBLACK": "Anti Black"
+                };
+
+                let voiceText = maps[functionName.replace(" ", "")] || functionName;
+                hablar(voiceText + (this.checked ? " activado" : " desactivado"));
+            };
+        });
+
+        function lanzarDirecto(packageName) {
+            hablar("Iniciando aplicación");
+            window.location.replace(`intent://#Intent;package=${packageName};scheme=android-app;S.browser_fallback_url=;end;`);
+        }
+    </script>
+</body>
+</html>
